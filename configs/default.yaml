@@ -1,7 +1,7 @@
 seed: 42
 paths:
-  test_csv: data/test.csv
-  submission_csv: outputs/submission.csv
+  test_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/test.csv
+  submission_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/sample_submission.csv
   words_json: outputs/generated_words.json
   attacks_json: outputs/attacks.json
   scores_json: outputs/scores.json

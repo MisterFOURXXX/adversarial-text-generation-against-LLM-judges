@@ -1,10 +1,27 @@
 # LLM Adversarial Judge Exploitation
 
-A modular, reproducible research repository for studying adversarial text-generation attacks against **LLM-as-a-judge** committees. The pipeline generates short adversarial essays that maximise scoring disagreement among a panel of language models tasked with grading subjective text.
+This challenge is an advanced exercise in AI safety and adversarial machine learning, specifically targeting the vulnerabilities of **LLM-based grading systems**. The core objective is to **find the "exploits" that cause maximum confusion among a committee (LLMs committee) of automated judges**.
 
-This repository is a refactor of the original competition notebook into a research-grade Python package with typed configuration, structured logging, CLI entry points, and unit tests.
+Different models will have different degrees of self-bias, position-bias, length-bias, and style-bias that might negatively impact their ability to provide robust assessments ([Zheng 2023](https://arxiv.org/pdf/2306.05685), [Wang 2023](https://arxiv.org/pdf/2305.17926), [Panickssery 2024](https://arxiv.org/pdf/2404.13076)). Likewise, different models will have different degrees of vulnerabilities to targeted exploits, such as universal jailbreaks, that can be used to misguide the system ([Wallace 2021](https://arxiv.org/pdf/1908.07125), [Zou 2023](https://arxiv.org/pdf/2307.15043), [Li 2024](https://arxiv.org/pdf/2405.13068), [Rando 2024](https://arxiv.org/pdf/2404.14461)). The central challenge is to systematically identify exploits for an automated system designed to evaluate essay quality. The objective requires the creation and submission of essays that maximize the disagreement among a panel of Large Language Model (LLM) judges. The resulting data helps to form a critical understanding of the capabilities and limitations of using LLMs for large-scale, subjective evaluation tasks.
+
+
+**The LLM Grading Committee**
+
+One method to improve the robustness of automated judging systems is to include multiple LLM models to form a LLM-judging committee. Each model is distantly related to the other, decreasing the chances of having common vulnerabilities. An advantage of LLM-judging committees is that they are less sensitive to exploits that impact only a single model. This competition attempts to answer the question of whether or not individual LLM judges can be coerced into returning inflated scores that diverge substantially from a group consensus.
+
+The evaluation employs an LLM-judging committee composed of three distinct, distantly related models. This design is intended to enhance robustness by ensuring that common single-model vulnerabilities do not impact the consensus score. The competition attempts to determine the extent to which individual judges can be coerced into returning inflated or divergent scores that deviate substantially from the group standard.
+
+Automated rating systems are susceptible to various exploits, including self-bias, position-bias, length-bias, and style-bias. To mitigate these vulnerabilities, the system employs an LLM-judging committee composed of three distantly related models. This diversity is intended to decrease the chance of shared weaknesses.
+
+**Objective**
+
+The project attempts to answer whether individual LLM judges can be forced into returning inflated or divergent scores that substantially contradict the group's consensus. Success in this challenge helps the machine learning community better understand the strengths and weaknesses of using AI for subjective decision-making.
+
+The goal of this project is the systematic identification of exploits within an LLM-as-a-judge system designed for essay evaluation. Data are provided with essay topics and must submit corresponding essays, approximately 100 words in length, structured to maximize scoring disagreement among three separate Large Language Model (LLM) judges. The resulting insights contribute to a better understanding of the capabilities and limitations associated with deploying LLMs for subjective evaluation tasks at scale. A modular, reproducible research repository for studying adversarial text-generation attacks against **LLM-as-a-judge** committees. The pipeline generates short adversarial essays that maximise scoring disagreement among a panel of language models tasked with grading subjective text.
 
 > **Research use only.** The techniques and exploit strings in this repository are documented for AI-safety research and defensive ablation. See [Section 8 Ethics & Intended Use](#8-ethics--intended-use) before proceeding.
+
+**[Competition Link](https://www.kaggle.com/competitions/llms-you-cant-please-them-all/overview)**
 
 ---
 
@@ -600,14 +617,13 @@ Each stage maps to one or more modules under `src/`:
 ### Steps
 
 ```bash
-git clone <repo-url> llm-adv-judge
-cd llm-adv-judge
+git clone https://github.com/MisterFOURXXX/adversarial-text-generation-against-LLM-judges
+cd ./adversarial-text-generation-against-LLM-judges
 
 python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-pip install -e .
 ```
 
 ### Hugging Face token
@@ -616,6 +632,11 @@ pip install -e .
 
 ```bash
 export HF_TOKEN="hf_..."
+```
+If above command does not work, please try:
+
+```bash
+os.environ['HF_TOKEN'] = 'hf_...'
 ```
 
 The token is read once by `src/config.py` (`os.getenv("HF_TOKEN")`) and passed downstream to every loader. Ungated committee members (`gemma`, `phi`) work without one; the token is only consumed when a caller supplies it.
