@@ -643,7 +643,7 @@ The token is read once by `src/config.py` (`os.getenv("HF_TOKEN")`) and passed d
 
 ### Download Dataset and File Path Configuration
 
-Download the dataset from the **[Competition Link](https://www.kaggle.com/competitions/llms-you-cant-please-them-all/overview)**. Then, update the file paths for the test file and submission file in the `test_csv` and `submission_csv` variables within the `configs/default.yaml` file.
+Download the dataset from the **[Competition Link](https://www.kaggle.com/competitions/llms-you-cant-please-them-all/overview)**. Then, update the file path for the test file in the `test_csv` variable within the `configs/default.yaml` file.
 
 ### Smoke test
 

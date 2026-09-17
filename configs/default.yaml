@@ -9,7 +9,7 @@ seed: 42
 
 paths:
   test_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/test.csv                        # Revise to your actual file path
-  submission_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/sample_submission.csv     # Revise to your actual file path
+  submission_csv: outputs/submission.csv
   words_json: outputs/generated_words.json
   attacks_json: outputs/attacks.json
   scores_json: outputs/scores.json
