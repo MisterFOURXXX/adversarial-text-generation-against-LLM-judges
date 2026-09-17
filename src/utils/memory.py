@@ -1,31 +1,38 @@
-"""GPU memory reclamation helpers.
+"""GPU memory management helpers.
 
-Python reference counting means a helper function *cannot* free an object
-held by the caller — ``del obj`` inside a function only removes the local
-binding. The correct pattern is::
-
-    model = None
-    tokenizer = None
-    free_gpu()
-
-This module therefore exposes ``free_gpu`` as a zero-argument reclaim step,
-and callers are responsible for dropping their references first.
+`free_gpu` is deliberately signature-tolerant so it can be called either as
+`free_gpu()` (preferred) or `free_gpu(a, b, c)` (legacy). The actual release
+of Python references must happen at the call site via `del`, because a
+function cannot drop the caller's bindings.
 """
 
 from __future__ import annotations
 
 import gc
-
 import torch
 
 
-def free_gpu() -> None:
-    """Run Python GC and release cached CUDA blocks.
+def free_gpu(*_objects) -> None:
+    """Reclaim cached GPU memory.
 
-    Call *after* setting the relevant model/tokenizer variables to ``None``
-    (or letting them fall out of scope). Safe to call even when CUDA is
-    unavailable — the ``torch.cuda`` calls are no-ops in that case.
+    Parameters
+    ----------
+    *_objects
+        Optional references retained for call-site expressiveness. They are
+        accepted but not deleted here — the caller is responsible for
+        ``del model, tokenizer``. Passing them is a no-op that keeps older
+        call sites (``free_gpu(model, tokenizer)``) working.
+
+    Notes
+    -----
+    This function performs two actions:
+
+    1. Runs a full cyclic GC pass so that any Python objects whose ``__del__``
+       holds CUDA tensors release them.
+    2. Empties PyTorch's CUDA caching allocator, returning memory to the
+       driver so the next model load can use it.
     """
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()  # release any inter-process shared handles

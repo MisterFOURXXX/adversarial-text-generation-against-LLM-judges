@@ -1,4 +1,4 @@
-"""Nonsense-text generation with Llama-3.1-8B-Instruct."""
+"""Stage 2 — nonsense payload generation using Llama-3.1-8B-Instruct."""
 
 from __future__ import annotations
 
@@ -20,12 +20,18 @@ NONSENSE_PROMPT = (
 
 
 class NonsenseGenerator:
-    """Wraps a Llama model for repeated nonsense-text generation."""
+    """Thin wrapper over a quantized Llama for repeated nonsense generation."""
 
     def __init__(self, model, tokenizer, cfg: NonsenseConfig):
         self.model = model
         self.tokenizer = tokenizer
         self.cfg = cfg
+        # Cached once — the assistant marker is the same for every call.
+        self._assistant_marker = tokenizer.apply_chat_template(
+            [{"role": "assistant", "content": ""}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
 
     @classmethod
     def build(
@@ -37,17 +43,13 @@ class NonsenseGenerator:
         model, tokenizer = load_model_and_tokenizer(cfg.model, bnb_config, hf_token)
         return cls(model, tokenizer, cfg)
 
-    # ------------------------------------------------------------------ #
-    # Public API                                                          #
-    # ------------------------------------------------------------------ #
-
     def generate(self) -> str:
-        """Return exactly ``cfg.n_words`` alphabetic tokens (len >= 6)."""
         messages = [{"role": "user", "content": NONSENSE_PROMPT}]
         text = self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-        inputs = self.tokenizer(text, return_tensors="pt").to("cuda")
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+
         with torch.no_grad():
             out = self.model.generate(
                 **inputs,
@@ -57,48 +59,29 @@ class NonsenseGenerator:
                 do_sample=True,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
+
         decoded = self.tokenizer.decode(out[0], skip_special_tokens=True)
+        body = decoded.split(self._assistant_marker)[-1].strip()
 
-        assistant_marker = self.tokenizer.apply_chat_template(
-            [{"role": "assistant", "content": ""}],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
-        body = decoded.split(assistant_marker)[-1].strip()
+        words = [
+            w for w in body.split() if len(w) > 5 and w.isalpha()
+        ][: self.cfg.n_words]
 
-        words = [w for w in body.split() if len(w) > 5 and w.isalpha()]
-        words = words[: self.cfg.n_words]
-
-        # Guard: empty pool would crash random.choices
-        if not words:
-            log.warning("Nonsense generator returned no valid words; returning empty payload")
-            return ""
-
-        # Backfill shortfalls so every payload has the same token count
-        if len(words) < self.cfg.n_words:
-            shortfall = self.cfg.n_words - len(words)
-            words += random.choices(words, k=shortfall)
-
+        if len(words) < self.cfg.n_words and words:
+            words += random.choices(
+                words, k=self.cfg.n_words - len(words)
+            )
         return " ".join(words)
 
-    def trim(self, text: str, length: int = 900) -> str:
-        """Return the *last* ``length`` characters, dropping a partial leading word.
-
-        If ``text`` is already shorter than ``length``, it is returned
-        unchanged — previously the leading word was dropped even when no
-        truncation was needed.
-        """
-        if len(text) <= length:
-            return text
+    @staticmethod
+    def trim(text: str, length: int = 900) -> str:
         text = text[-length:]
         parts = text.split(" ", 1)
         return parts[1] if len(parts) > 1 else text
 
-    # ------------------------------------------------------------------ #
-    # Reference release                                                   #
-    # ------------------------------------------------------------------ #
+    def close(self) -> None:
+        """Release the underlying model and clear GPU cache."""
+        from utils.memory import free_gpu
 
-    def release(self) -> None:
-        """Drop internal references so ``free_gpu()`` can reclaim VRAM."""
-        self.model = None
-        self.tokenizer = None
+        del self.model, self.tokenizer
+        free_gpu()
