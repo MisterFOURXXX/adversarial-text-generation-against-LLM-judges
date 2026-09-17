@@ -1,8 +1,20 @@
+"""Typed configuration loaded from YAML + environment."""
+
 from __future__ import annotations
+
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
-import os
+from typing import Any
+
 import yaml
+
+# --- Warning suppression (must run before torch / transformers import) -----
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -38,8 +50,8 @@ class NonsenseConfig:
 class GenerationConfig:
     vocab: VocabConfig
     nonsense: NonsenseConfig
-    exploits: dict
-    baseline: dict
+    exploits: dict[str, Any]
+    baseline: dict[str, Any]
     essay_max_chars: int = 900
 
 
@@ -63,15 +75,24 @@ class Config:
 
 def load_config(path: str | Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text())
+
     paths = Paths(**{k: Path(v) for k, v in raw["paths"].items()})
+
+    gen_block = raw["generation"]
     gen = GenerationConfig(
-        vocab=VocabConfig(**raw["generation"]["vocab"]),
-        nonsense=NonsenseConfig(**raw["generation"]["nonsense"]),
-        exploits=raw["generation"]["exploits"],
-        baseline=raw["generation"]["baseline"],
-        essay_max_chars=raw["generation"].get("essay_max_chars", 900),
+        vocab=VocabConfig(**gen_block["vocab"]),
+        nonsense=NonsenseConfig(**gen_block["nonsense"]),
+        exploits=gen_block.get("exploits", {"examples_per_type": 5}),
+        baseline=gen_block.get("baseline", {"temperature": 0.2}),
+        essay_max_chars=gen_block.get("essay_max_chars", 900),
     )
+
     ev = EvaluationConfig(**raw["evaluation"])
-    hf_token = os.getenv("HF_TOKEN")
-    return Config(seed=raw["seed"], paths=paths, generation=gen,
-                  evaluation=ev, hf_token=hf_token)
+
+    return Config(
+        seed=raw["seed"],
+        paths=paths,
+        generation=gen,
+        evaluation=ev,
+        hf_token=os.getenv("HF_TOKEN"),
+    )

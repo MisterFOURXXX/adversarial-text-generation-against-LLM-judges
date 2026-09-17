@@ -1,7 +1,15 @@
+# =============================================================================
+# Pipeline configuration — LLM Adversarial Judge Exploitation
+# =============================================================================
+# Every key here maps to a dataclass in src/config.py. Unknown keys raise
+# TypeError at load time (intentional — catches config drift early).
+# =============================================================================
+
 seed: 42
+
 paths:
-  test_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/test.csv
-  submission_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/sample_submission.csv
+  test_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/test.csv                        # Revise to your actual file path
+  submission_csv: /kaggle/input/competitions/llms-you-cant-please-them-all/sample_submission.csv     # Revise to your actual file path
   words_json: outputs/generated_words.json
   attacks_json: outputs/attacks.json
   scores_json: outputs/scores.json
@@ -15,17 +23,24 @@ generation:
     top_p: 0.95
     target_size: 1000
     min_word_len: 6
+
   nonsense:
     model: meta-llama/Llama-3.1-8B-Instruct
     max_new_tokens: 1000
     temperature: 0.9
     top_p: 0.95
     n_words: 100
+
   exploits:
+    # Number of pre-generated examples per exploit type. Pools are cycled
+    # across the submission.
     examples_per_type: 5
+
   baseline:
+    # Baseline instruction templates live in src/generation/baseline.py
+    # (BASELINE_INSTRUCTIONS). This block documents the shared temperature.
     temperature: 0.2
-    instructions: [...]
+
   essay_max_chars: 900
 
 evaluation:

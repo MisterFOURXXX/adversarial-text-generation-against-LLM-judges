@@ -641,11 +641,15 @@ os.environ['HF_TOKEN'] = 'hf_...'
 
 The token is read once by `src/config.py` (`os.getenv("HF_TOKEN")`) and passed downstream to every loader. Ungated committee members (`gemma`, `phi`) work without one; the token is only consumed when a caller supplies it.
 
+### Download Dataset and File Path Configuration
+
+Download the dataset from the **[Competition Link](https://www.kaggle.com/competitions/llms-you-cant-please-them-all/overview)**. Then, update the file paths for the test file and submission file in the `test_csv` and `submission_csv` variables within the `configs/default.yaml` file.
+
 ### Smoke test
 
 ```bash
 pytest -q
-```
+``` 
 
 All tests are CPU-only and do not require model downloads.
 
