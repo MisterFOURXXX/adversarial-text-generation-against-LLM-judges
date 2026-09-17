@@ -1,0 +1,18 @@
+[project]
+name = "llm-adv-judge"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "torch", "transformers", "bitsandbytes", "accelerate",
+  "pandas", "numpy", "scipy", "pyyaml", "lingua-language-detector",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["utils*", "models*", "generation*", "evaluation*"]
+
+[tool.setuptools.py-modules]
+modules = ["config", "logging_utils", "pipeline"]

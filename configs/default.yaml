@@ -1,0 +1,40 @@
+seed: 42
+paths:
+  test_csv: data/test.csv
+  submission_csv: outputs/submission.csv
+  words_json: outputs/generated_words.json
+  attacks_json: outputs/attacks.json
+  scores_json: outputs/scores.json
+
+generation:
+  vocab:
+    model: Qwen/Qwen2.5-3B-Instruct
+    n_iterations: 100
+    max_new_tokens: 2000
+    temperature: 1.2
+    top_p: 0.95
+    target_size: 1000
+    min_word_len: 6
+  nonsense:
+    model: meta-llama/Llama-3.1-8B-Instruct
+    max_new_tokens: 1000
+    temperature: 0.9
+    top_p: 0.95
+    n_words: 100
+  exploits:
+    examples_per_type: 5
+  baseline:
+    temperature: 0.2
+    instructions: [...]
+  essay_max_chars: 900
+
+evaluation:
+  committee:
+    - google/gemma-2-2b-it
+    - Qwen/Qwen3-4B-Instruct-2507
+    - meta-llama/Llama-3.1-8B-Instruct
+    - microsoft/Phi-3.5-mini-instruct
+  max_input_tokens: 4096
+  max_new_tokens: 10
+  default_score: 4.5
+  similarity_floor: 0.2
