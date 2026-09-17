@@ -17,15 +17,15 @@ paths:
 generation:
   vocab:
     model: Qwen/Qwen2.5-3B-Instruct
-    n_iterations: 100
-    max_new_tokens: 2000
+    n_iterations: 100        # For testing can set to 10 or 20, but for final runs use 100.
+    max_new_tokens: 2000     # For testing can set to 500, but for final runs use 2000.
     temperature: 1.2
     top_p: 0.95
-    target_size: 1000
+    target_size: 1000        # For testing can set to 100, but for final runs use 1000.
     min_word_len: 6
     # If the pool does not grow for this many consecutive iterations,
     # stop early instead of burning GPU time.
-    patience: 15
+    patience: 5              # For testing can set to 2, but for final runs use 5.
 
   nonsense:
     model: meta-llama/Llama-3.1-8B-Instruct
