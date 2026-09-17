@@ -17,29 +17,29 @@ paths:
 generation:
   vocab:
     model: Qwen/Qwen2.5-3B-Instruct
-    n_iterations: 10  #100
-    max_new_tokens: 200  #2000
+    n_iterations: 100
+    max_new_tokens: 2000
     temperature: 1.2
     top_p: 0.95
-    target_size: 10  #1000
+    target_size: 1000
     min_word_len: 6
+    # If the pool does not grow for this many consecutive iterations,
+    # stop early instead of burning GPU time.
+    patience: 15
 
   nonsense:
     model: meta-llama/Llama-3.1-8B-Instruct
-    max_new_tokens: 100
+    max_new_tokens: 1000
     temperature: 0.9
     top_p: 0.95
     n_words: 100
 
   exploits:
-    # Number of pre-generated examples per exploit type. Pools are cycled
-    # across the submission.
     examples_per_type: 5
 
   baseline:
-    # Baseline instruction templates live in src/generation/baseline.py
-    # (BASELINE_INSTRUCTIONS). This block documents the shared temperature.
     temperature: 0.2
+    instructions: []          # currently unused; BASELINE_INSTRUCTIONS is in code
 
   essay_max_chars: 900
 
@@ -53,3 +53,5 @@ evaluation:
   max_new_tokens: 10
   default_score: 4.5
   similarity_floor: 0.2
+  # Use eager attention by default to avoid flash-attn version mismatches.
+  attn_implementation: eager

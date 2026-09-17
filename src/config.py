@@ -1,21 +1,81 @@
-"""Typed configuration loaded from YAML + environment."""
+"""Typed configuration objects and YAML loader.
+
+All paths are validated at load time. Output paths that are unwritable
+(e.g. they live under the read-only /kaggle/input tree) are transparently
+redirected to a writable fallback directory.
+"""
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
 
-# --- Warning suppression (must run before torch / transformers import) -----
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+from logging_utils import get_logger
+
+log = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Writability helpers
 # ---------------------------------------------------------------------------
 
+def _default_output_dir() -> Path:
+    """Return a writable base directory for pipeline artefacts.
+
+    Preference order:
+        1. $ADVJUDGE_OUTPUT_DIR if set.
+        2. /kaggle/working/outputs if running on Kaggle.
+        3. ./outputs relative to CWD.
+    """
+    env = os.getenv("ADVJUDGE_OUTPUT_DIR")
+    if env:
+        return Path(env)
+    if Path("/kaggle/working").exists():
+        return Path("/kaggle/working/outputs")
+    return Path.cwd() / "outputs"
+
+
+def _is_writable_dir(path: Path) -> bool:
+    """Return True if ``path`` can be created and written to."""
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".write_probe"
+        probe.touch()
+        probe.unlink()
+        return True
+    except (OSError, PermissionError):
+        return False
+
+
+def _resolve_output(raw: str, base: Path) -> Path:
+    """Resolve an output path, redirecting to ``base`` if unwritable.
+
+    * Relative paths are joined onto ``base``.
+    * Absolute paths are returned as-is if writable, else redirected.
+    """
+    p = Path(raw)
+    if not p.is_absolute():
+        target = base / p.name
+    else:
+        target = p
+
+    if _is_writable_dir(target.parent):
+        return target
+
+    fallback = base / p.name
+    log.warning(
+        "Output path %s is not writable; redirecting to %s", target, fallback
+    )
+    fallback.parent.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
 
 @dataclass
 class Paths:
@@ -35,6 +95,7 @@ class VocabConfig:
     top_p: float
     target_size: int
     min_word_len: int
+    patience: int = 15
 
 
 @dataclass
@@ -50,8 +111,8 @@ class NonsenseConfig:
 class GenerationConfig:
     vocab: VocabConfig
     nonsense: NonsenseConfig
-    exploits: dict[str, Any]
-    baseline: dict[str, Any]
+    exploits: dict
+    baseline: dict
     essay_max_chars: int = 900
 
 
@@ -62,6 +123,7 @@ class EvaluationConfig:
     max_new_tokens: int = 10
     default_score: float = 4.5
     similarity_floor: float = 0.2
+    attn_implementation: str | None = "eager"
 
 
 @dataclass
@@ -73,26 +135,44 @@ class Config:
     hf_token: str | None = field(default=None, repr=False)
 
 
+# ---------------------------------------------------------------------------
+# Loader
+# ---------------------------------------------------------------------------
+
 def load_config(path: str | Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text())
 
-    paths = Paths(**{k: Path(v) for k, v in raw["paths"].items()})
+    output_dir = _default_output_dir()
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    gen_block = raw["generation"]
-    gen = GenerationConfig(
-        vocab=VocabConfig(**gen_block["vocab"]),
-        nonsense=NonsenseConfig(**gen_block["nonsense"]),
-        exploits=gen_block.get("exploits", {"examples_per_type": 5}),
-        baseline=gen_block.get("baseline", {"temperature": 0.2}),
-        essay_max_chars=gen_block.get("essay_max_chars", 900),
+    raw_paths = raw["paths"]
+    paths = Paths(
+        test_csv=Path(raw_paths["test_csv"]),
+        submission_csv=_resolve_output(raw_paths["submission_csv"], output_dir),
+        words_json=_resolve_output(raw_paths["words_json"], output_dir),
+        attacks_json=_resolve_output(raw_paths["attacks_json"], output_dir),
+        scores_json=_resolve_output(raw_paths["scores_json"], output_dir),
     )
 
-    ev = EvaluationConfig(**raw["evaluation"])
+    gen_raw = raw["generation"]
+    gen = GenerationConfig(
+        vocab=VocabConfig(**gen_raw["vocab"]),
+        nonsense=NonsenseConfig(**gen_raw["nonsense"]),
+        exploits=gen_raw["exploits"],
+        baseline=gen_raw.get("baseline", {}),
+        essay_max_chars=gen_raw.get("essay_max_chars", 900),
+    )
 
+    ev_raw = raw["evaluation"]
+    # Forward-compatibility: allow older YAMLs without the new field.
+    ev_raw.setdefault("attn_implementation", "eager")
+    ev = EvaluationConfig(**ev_raw)
+
+    hf_token = os.getenv("HF_TOKEN")
     return Config(
         seed=raw["seed"],
         paths=paths,
         generation=gen,
         evaluation=ev,
-        hf_token=os.getenv("HF_TOKEN"),
+        hf_token=hf_token,
     )

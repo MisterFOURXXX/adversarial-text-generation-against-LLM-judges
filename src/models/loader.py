@@ -1,9 +1,17 @@
-"""Hugging Face model + tokenizer loading with 4-bit NF4 quantization."""
+"""Hugging Face model + tokenizer loader with 4-bit NF4 quantization.
+
+Fixes applied:
+
+* ``attn_implementation`` is now configurable (default ``"eager"``) so
+  flash-attn version mismatches do not abort the run.
+* Qwen3 ships a ``generation_config.json`` whose sampling defaults
+  (``temperature``, ``top_p``, ``top_k``) trigger noisy warnings when
+  overridden by ``do_sample=False``. We clear those fields after load.
+* A clear log line reports the quantization and attention backend in use.
+"""
 
 from __future__ import annotations
 
-import os
-import warnings
 from typing import Optional
 
 from transformers import (
@@ -17,68 +25,58 @@ from logging_utils import get_logger
 log = get_logger(__name__)
 
 
+def _clear_sampling_defaults(model) -> None:
+    """Remove sampling-related defaults inherited from generation_config.
+
+    This silences the ``The following generation flags are not valid``
+    warning that HF emits when greedy decoding is requested but the model
+    config still carries temperature/top_p/top_k values.
+    """
+    cfg = getattr(model, "generation_config", None)
+    if cfg is None:
+        return
+    for attr in ("temperature", "top_p", "top_k"):
+        if hasattr(cfg, attr):
+            try:
+                setattr(cfg, attr, None)
+            except Exception:
+                # Some configs are frozen; ignore.
+                pass
+
+
 def load_model_and_tokenizer(
     model_name: str,
     bnb_config: BitsAndBytesConfig,
     hf_token: Optional[str] = None,
     trust_remote_code: bool = True,
-    attn_implementation: str = "eager",
+    attn_implementation: Optional[str] = "eager",
 ):
-    """Load a quantized causal LM and its tokenizer.
+    """Load a causal LM + tokenizer with the given quantization config."""
+    log.info(
+        "Loading model=%s (attn=%s)", model_name, attn_implementation or "default"
+    )
 
-    Parameters
-    ----------
-    model_name
-        Full Hugging Face repository id, optionally ``owner/name@revision``.
-    bnb_config
-        A pre-built ``BitsAndBytesConfig`` (typically NF4 4-bit).
-    hf_token
-        Optional Hugging Face token for gated repositories.
-    trust_remote_code
-        Allow custom modelling code from the repository.
-    attn_implementation
-        Attention backend. ``"eager"`` is the safest cross-model choice and
-        silences Phi's "flash-attention not found" warnings. Set to
-        ``"flash_attention_2"`` only if the package is installed and the
-        hardware supports it (Ampere+).
-
-    Returns
-    -------
-    (model, tokenizer)
-    """
-    log.info("Loading model=%s (attn=%s)", model_name, attn_implementation)
-
-    tok_kwargs = {"trust_remote_code": trust_remote_code}
-    mdl_kwargs = {
+    tok_kwargs: dict = {"trust_remote_code": trust_remote_code}
+    mdl_kwargs: dict = {
         "quantization_config": bnb_config,
         "device_map": "auto",
         "trust_remote_code": trust_remote_code,
-        "attn_implementation": attn_implementation,
     }
+    if attn_implementation:
+        mdl_kwargs["attn_implementation"] = attn_implementation
     if hf_token:
         tok_kwargs["token"] = hf_token
         mdl_kwargs["token"] = hf_token
 
-    # Silence the "temperature/top_p/top_k not valid" warning that fires when
-    # a repo's generation_config.json ships stochastic defaults but the caller
-    # uses greedy decoding. Judges pass explicit None values, but the warning
-    # is emitted at load time by some tokenizers, so we suppress it here.
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message=".*generation flags are not valid.*",
-        )
-        tokenizer = AutoTokenizer.from_pretrained(model_name, **tok_kwargs)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.pad_token_id = tokenizer.eos_token_id
+    tokenizer = AutoTokenizer.from_pretrained(model_name, **tok_kwargs)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
-        model = AutoModelForCausalLM.from_pretrained(model_name, **mdl_kwargs)
-
+    model = AutoModelForCausalLM.from_pretrained(model_name, **mdl_kwargs)
     model.eval()
+
+    _clear_sampling_defaults(model)
     return model, tokenizer
 
 
-# Ensure HF doesn't print progress bars twice when nested loggers fire.
-os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "FALSE")
+__all__ = ["load_model_and_tokenizer"]
