@@ -1,8 +1,20 @@
 # LLM Adversarial Judge Exploitation
 
-This challenge is an advanced exercise in AI safety and adversarial machine learning, specifically targeting the vulnerabilities of **LLM-based grading systems**. The core objective is to **find the "exploits" that cause maximum confusion among a committee (LLMs committee) of automated judges**.
+> An end-to-end, reproducible research repository that implements a comprehensive 
+> adversarial ML pipeline for AI safety. It applies **LLM-based text generation to exploit 
+> vulnerabilities in LLM-as-a-judge committees**, encompassing vocabulary generation, 
+> nonsense payload creation, exploit assembly, balanced attack assignment, committee 
+> evaluation, and reproducible metrics.
 
-Different models will have different degrees of self-bias, position-bias, length-bias, and style-bias that might negatively impact their ability to provide robust assessments ([Zheng 2023](https://arxiv.org/pdf/2306.05685), [Wang 2023](https://arxiv.org/pdf/2305.17926), [Panickssery 2024](https://arxiv.org/pdf/2404.13076)). Likewise, different models will have different degrees of vulnerabilities to targeted exploits, such as universal jailbreaks, that can be used to misguide the system ([Wallace 2021](https://arxiv.org/pdf/1908.07125), [Zou 2023](https://arxiv.org/pdf/2307.15043), [Li 2024](https://arxiv.org/pdf/2405.13068), [Rando 2024](https://arxiv.org/pdf/2404.14461)). The central challenge is to systematically identify exploits for an automated system designed to evaluate essay quality. The objective requires the creation and submission of essays that maximize the disagreement among a panel of Large Language Model (LLM) judges. The resulting data helps to form a critical understanding of the capabilities and limitations of using LLMs for large-scale, subjective evaluation tasks.
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/pytorch-2.10%2B-ee4c2c.svg)](https://pytorch.org/)
+[![Transformers](https://img.shields.io/badge/transformers-4.57-yellow.svg)](https://huggingface.co/docs/transformers)
+[![bitsandbytes](https://img.shields.io/badge/bitsandbytes-%3E%3D0.48-8a2be2.svg)](https://github.com/TimDettmers/bitsandbytes)
+[![accelerate](https://img.shields.io/badge/accelerate-%3E%3D1.0-008080.svg)](https://huggingface.co/docs/accelerate)
+
+## Introduction
+
+Different models will have different degrees of self-bias, position-bias, length-bias, and style-bias that might negatively impact their ability to provide robust assessments ([Zheng 2023](https://arxiv.org/pdf/2306.05685), [Wang 2023](https://arxiv.org/pdf/2305.17926), [Panickssery 2024](https://arxiv.org/pdf/2404.13076)). Likewise, different models will have different degrees of vulnerabilities to targeted exploits, such as universal jailbreaks, that can be used to misguide the system ([Wallace 2021](https://arxiv.org/pdf/1908.07125), [Zou 2023](https://arxiv.org/pdf/2307.15043), [Li 2024](https://arxiv.org/pdf/2405.13068), [Rando 2024](https://arxiv.org/pdf/2404.14461)). The central challenge is to systematically identify exploits for an automated system designed to evaluate essay quality, specifically targeting the vulnerabilities of **LLM-based grading systems**. The core objective is to **find the "exploits" that cause maximum confusion among a committee (LLMs committee) of automated judges**. The resulting data helps to form a critical understanding of the capabilities and limitations of using LLMs for large-scale, subjective evaluation tasks.
 
 
 **The LLM Grading Committee**
