@@ -1,8 +1,3 @@
-Below is a restructured **academic research repository** framing for the project.  
-I have preserved the original content by mapping every original section into the new academic structure. The main addition is a new **Foundations and Related Work** chapter, plus research framing, research questions, hypotheses, threat model, and expanded references.
-
----
-
 # LLM Adversarial Judge Exploitation
 
 > An end-to-end, reproducible research repository that implements a comprehensive adversarial ML pipeline for AI safety. It applies **LLM-based text generation to exploit vulnerabilities in LLM-as-a-judge committees**, encompassing vocabulary generation, nonsense payload creation, exploit assembly, balanced attack assignment, committee evaluation, and reproducible metrics.
