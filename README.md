@@ -7,11 +7,7 @@ I have preserved the original content by mapping every original section into the
 
 > An end-to-end, reproducible research repository that implements a comprehensive adversarial ML pipeline for AI safety. It applies **LLM-based text generation to exploit vulnerabilities in LLM-as-a-judge committees**, encompassing vocabulary generation, nonsense payload creation, exploit assembly, balanced attack assignment, committee evaluation, and reproducible metrics.
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)  
-[![PyTorch](https://img.shields.io/badge/pytorch-2.10%2B-ee4c2c.svg)](https://pytorch.org/)  
-[![Transformers](https://img.shields.io/badge/transformers-4.57-yellow.svg)](https://huggingface.co/docs/transformers)  
-[![bitsandbytes](https://img.shields.io/badge/bitsandbytes-%3E%3D0.48-8a2be2.svg)](https://github.com/TimDettmers/bitsandbytes)  
-[![accelerate](https://img.shields.io/badge/accelerate-%3E%3D1.0-008080.svg)](https://huggingface.co/docs/accelerate)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)  [![PyTorch](https://img.shields.io/badge/pytorch-2.10%2B-ee4c2c.svg)](https://pytorch.org/)  [![Transformers](https://img.shields.io/badge/transformers-4.57-yellow.svg)](https://huggingface.co/docs/transformers)  [![bitsandbytes](https://img.shields.io/badge/bitsandbytes-%3E%3D0.48-8a2be2.svg)](https://github.com/TimDettmers/bitsandbytes)  [![accelerate](https://img.shields.io/badge/accelerate-%3E%3D1.0-008080.svg)](https://huggingface.co/docs/accelerate)  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
